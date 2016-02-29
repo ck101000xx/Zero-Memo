@@ -50,19 +50,18 @@
   (function() {
       var BACKEND = "http://zero-memo-backend.herokuapp.com";
 
-      var form = document.getElementById('form');
-
       var textarea = document.getElementById("result");
 
-      form.addEventListener('submit', function() {
+      document.getElementById('form').onsubmit = function(event) {
+          event.preventDefault();
+
           var req = new XMLHttpRequest();
-          req.addEventListener('load', function(result) {
+          req.onload = function(result) {
               console.log(result);
-          });
+          };
           req.open('POST', BACKEND + '/background-image');
-          req.send(new FormData(form));
-          return false;
-      });
+          req.send(new FormData(event.target));
+      };
 
       document.getElementById("copy").onclick = function() {
           textarea.select();
