@@ -18,17 +18,17 @@
       <div class="form-group">
         <label>
           <p>原圖(河道背景圖)</p>
-          <input name="source" type="url" class="form-control" required="required" />
+          <input name="images[timeline]" type="url" class="form-control" required="required" />
         </label>
       </div>
       <div class="form-group">
         <label>
           資訊面板背景亮度
-          <input name="brightness[dashboard]" type="range" min="0" max="200" value="75" />
+          <input name="images[dashboard]" type="range" min="0" max="200" value="75" />
         </label>
         <label>
           噗文背景亮度
-          <input name="brightness[plurk]" type="range" min="0" max="200" value="150" />
+          <input name="images[plurk]" type="range" min="0" max="200" value="150" />
         </label>
       </div>
       <button type="submit" class="btn btn-lg btn-primary">產生</button>
