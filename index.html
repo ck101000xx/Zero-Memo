@@ -2,78 +2,221 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <!-- Latest compiled and minified CSS -->
+
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
-
-  <!-- Optional theme -->
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
-
+  
+  <style>
+    .input-group-btn > select.btn {
+        margin-top: 0;
+        margin-bottom: 0;
+        padding-top: 7px;
+        padding-bottom: 7px;
+        border-color: #ccc;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>Zero-Memo模糊背景產生器</h1>
-
-    <form id="form">
-      <h2>參數</h2>
-      <div class="form-group">
-        <label>
-          <p>原圖(河道背景圖)</p>
-          <input name="images[timeline]" type="url" class="form-control" required="required" />
-        </label>
-      </div>
-      <div class="form-group">
-        <label>
-          資訊面板背景亮度
-          <input name="images[dashboard][brightness]:number" type="range" min="0" max="200" value="75" />
-        </label>
-        <label>
-          噗文背景亮度
-          <input name="images[plurk][brightness]:number" type="range" min="0" max="200" value="150" />
-        </label>
-      </div>
-      <button type="submit" class="btn btn-lg btn-primary">產生</button>
-    </form>
+    <h1>Zero-Memo模糊背景產生器<small>beta</small></h1>
+    
     <hr />
-    <div>
+    
+    <div class="row">
+      <div class="col-md-6">
+        <h2>參數</h2>
+        <form id="form">
+          <div class="form-group">
+            <label>原圖(河道背景圖)</label>
+            <div class="input-group">
+              <span class="input-group-btn">
+                <select id="image-input-type" class="btn">
+                  <option value="url">網址</option>
+                  <option value="file">檔案</option>
+                </select>
+              </span>
+              <input type="url" id="image-input" class="form-control" required="required" />
+            </div>  <!-- div.input-group -->
+          </div>  <!-- div.form-group -->
+          
+          <div class="form-group">
+            <label>資訊面板背景亮度</label>
+            <input type="range" id="dashboard-brightness" min="-100" max="100" value="-25" />
+          </div>
+
+          <div class="form-group">
+            <label>噗文背景亮度</label>
+            <input type="range" id="plurk-brightness" min="-100" max="100" value="25" />
+          </div>
+
+          <button type="submit" class="btn btn-lg btn-primary">生成</button>
+        <form>
+      </div>
+      <div class="col-md-6">
         <h2>生成物</h2>
 
         <textarea id="result" class="form-control" style="max-height:500px;"></textarea>
         <button id="copy" type="button" class="btn btn-default">點我複製</button>
+      </div>
     </div>
-
   </div>
+
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-  <!-- Latest compiled and minified JavaScript -->
+
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
 
-
-  <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
-
-  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.serializeJSON/2.7.2/jquery.serializejson.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/bluebird/3.3.3/bluebird.min.js"></script>
 
   <script type="text/javascript">
-  (function() {
-      var socket = io("http://zero-memo-backend.herokuapp.com");
+    (function() {
+        function uploadImage(image) {
+            return new Promise(function(resolve, reject) {
+                var xhr = new XMLHttpRequest();
+                xhr.responseType = 'json';
+                xhr.setRequestHeader('Authorization', 'Client-ID f2c48785e9ed652');
+                xhr.onload = function() {
+                    if (!response.success) return reject(new Error(xhr.response.data.error));
+                    resolve(xhr.response.data.link);
+                };
+                xhr.onerror = reject;
+                xhr.open('POST', 'https://api.imgur.com/3/image.json');
 
-      var textarea = document.getElementById("result");
+                var data = new FormData();
+                data.set('image', image);
 
-      socket.on('css', function(css) {
-          textarea.value = css;
-      });
+                xhr.post(data);
+            });
+        }
 
-      $('#form').submit(function(event) {
-          event.preventDefault();
+        function toPng(imageData) {
+            return new Promise(function(resolve, reject) {
+                var canvas = document.createElement('canvas');
+                var ctx = canvas.getContext('2d');
 
-          var data = $(this).serializeJSON();
+                canvas.width = imageData.width;
+                canvas.height = imageData.height;
 
-          socket.emit('get css', data);
-      });
+                ctx.putImageData(imageData, 0, 0);
 
-      document.getElementById("copy").onclick = function() {
-          textarea.select();
-          document.execCommand("copy");
-      }
-  }());
+                return ctx.toBlob(resolve, 'image/png');
+            });
+        }
+
+        var generateBackground = (function() {
+            var workers = {};
+            return function generateBackground(key, options, imageData) {
+                return new Promise(function(resolve, reject) {
+                    if (workers[key] == undefined) {
+                        workers[key] = { worker: new Worker('worker.js') };
+                    } else if (workers[key].running) {
+                        workers[key].worker.terminate();
+                        workers[key].worker = new Worker('worker.js');
+                    }
+
+                    workers[key].running = true;
+
+                    workers[key].worker.onmessage = function(event) {
+                        workers[key].running = false;
+                        resolve(event.data);
+                    };
+
+                    worker.onerror = reject;
+
+                    workers[key].worker.postMessage({
+                        imageData: imageData,
+                        options: options
+                    });
+
+                });
+            }
+        }());
+
+        function loadImage(src) {
+            return new Promise(function(resolve, reject) {
+                var image = new Image();
+                var canvas = document.createElement('canvas');
+                var ctx = canvas.getContext('2d');
+        
+                image.onload = function() {
+                    var width = canvas.width = image.width;
+                    var height = canvas.height = image.height;
+                    ctx.drawImage(image, 0, 0);
+                    resolve(ctx.getImageData(0, 0, width, height));
+                }
+                image.onerror = reject;
+
+                image.src = src;
+            });
+        }
+
+        function getUrlInput(input) {
+            return new Promise(function(resolve, reject) {
+                if (input.type === 'url') {
+                    resolve(imageInput.value);
+                } else if (input.type === 'file') {
+                    var file = image.files[0];
+                    var reader = new FileReader();
+                    reader.onload = function() {
+                        resolve(reader.result);
+                    }
+                    reader.onerror = reject;
+                    reader.readAsDataURL();
+                }
+            });
+        }
+        
+        function parseBrightnessInput(element) {
+            var value = parseInt(element.value);
+            if (value >= 0) {
+                return ['lighten', value];
+            } else {
+                return ['darken', value * -1];
+            }
+
+        }        
+
+        function getImageOptions(key) {
+            var pair = parseBrightnessInput(document.getElementById(key + '-brightness'));
+            return { pair[0]: pair[1] };
+        }
+
+        var textarea = document.getElementById("result");
+
+        var imageInput = $('#image-input')[0];
+
+        $('#image-input-type').change(function() {
+            imageInput.type = this.value;
+        });
+
+        $('#form').submit(function(event) {
+            event.preventDefault();
+            var images = {};
+
+            getUrlInput(imageInput)
+                .tap(function(url) {
+                    return uploadImage(url).then(function(image) { images.timeline = image; })
+                })
+                .then(loadImage)
+                .then(function(imageData) {
+                    var result = {};
+                    return Promise.map(['dashboard', 'plurk'], function(key) {
+                        getImageOptions(key)
+                            .then(function(options) {
+                                return generateBackground(key, options, imageData);
+                            })
+                            .then(toPng)
+                            .then(uploadImage)
+                            .then(function(value) { images[key] = value; });
+                    });
+                }).then(function() {
+                    console.log(images);
+                });
+        });
+
+        $('#copy').click(function() {
+            textarea.select();
+            document.execCommand("copy");
+        });
+    }());
   </script>
 </body>
 </html>
