@@ -91,7 +91,7 @@
             for (var key in selectors) {
                 if (images[key] != undefined) {
                     css += selectors[key] + '{'
-                         + 'background-image:url("' + images[key] + '");'
+                         + 'background-image:url("' + images[key] + '") !important;'
                          + '}';
                 }
             }
