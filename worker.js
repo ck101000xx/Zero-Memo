@@ -1,5 +1,5 @@
-importScript('stackblur/dist/stackblur.min.js')
-importScript('tinycolor/dist/tinycolor-min.js');
+importScripts('stackblur/dist/stackblur.min.js')
+importScripts('tinycolor/dist/tinycolor-min.js');
 
 self.addEventListener('message', function(event) {
     var imageData = event.data.imageData;
