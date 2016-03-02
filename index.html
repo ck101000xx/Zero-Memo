@@ -81,7 +81,7 @@
                 xhr.onerror = reject;
                 
                 var data = new FormData();
-                data.set('image', image);
+                data.append('image', image);
 
                 xhr.post(data);
             });
