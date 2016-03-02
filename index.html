@@ -175,8 +175,10 @@
         }        
 
         function getImageOptions(key) {
+            var result = {};
             var pair = parseBrightnessInput(document.getElementById(key + '-brightness'));
-            return { pair[0]: pair[1] };
+            result[pair[0]] = pair[1];
+            return result;
         }
 
         var textarea = document.getElementById("result");
