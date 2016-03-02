@@ -159,7 +159,7 @@
                         resolve(reader.result);
                     }
                     reader.onerror = reject;
-                    reader.readAsDataURL();
+                    reader.readAsDataURL(file);
                 }
             });
         }
