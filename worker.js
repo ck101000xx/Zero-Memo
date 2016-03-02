@@ -1,4 +1,7 @@
-importScripts('stackblur/dist/stackblur.min.js')
+// fix tinycolor
+var window = self;
+
+importScripts('stackblur/dist/stackblur.js');
 importScripts('tinycolor/dist/tinycolor-min.js');
 
 self.addEventListener('message', function(event) {
@@ -26,5 +29,5 @@ self.addEventListener('message', function(event) {
         }    
     }
 
-    self.postMessagge(imageData, [imageData.data.buffer]);
+    self.postMessage(imageData, [imageData.data.buffer]);
 });
