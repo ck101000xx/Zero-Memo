@@ -151,9 +151,9 @@
         function getUrlInput(input) {
             return new Promise(function(resolve, reject) {
                 if (input.type === 'url') {
-                    resolve(imageInput.value);
+                    resolve(input.value);
                 } else if (input.type === 'file') {
-                    var file = image.files[0];
+                    var file = input.files[0];
                     var reader = new FileReader();
                     reader.onload = function() {
                         resolve(reader.result);
