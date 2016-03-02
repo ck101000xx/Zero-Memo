@@ -71,6 +71,7 @@
         function uploadImage(image) {
             return new Promise(function(resolve, reject) {
                 var xhr = new XMLHttpRequest();
+                xhr.open('POST', 'https://api.imgur.com/3/image.json');
                 xhr.responseType = 'json';
                 xhr.setRequestHeader('Authorization', 'Client-ID f2c48785e9ed652');
                 xhr.onload = function() {
@@ -78,8 +79,7 @@
                     resolve(xhr.response.data.link);
                 };
                 xhr.onerror = reject;
-                xhr.open('POST', 'https://api.imgur.com/3/image.json');
-
+                
                 var data = new FormData();
                 data.set('image', image);
 
