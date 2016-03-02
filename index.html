@@ -164,21 +164,21 @@
             });
         }
         
-        function parseBrightnessInput(element) {
+        function parseBrightnessInput(obj, element) {
             var value = parseInt(element.value);
             if (value >= 0) {
-                return ['lighten', value];
+                obj.lighten = value;
             } else {
-                return ['darken', value * -1];
+                obj.darken = value * -1;
             }
-
         }        
 
         function getImageOptions(key) {
-            var result = {};
-            var pair = parseBrightnessInput(document.getElementById(key + '-brightness'));
-            result[pair[0]] = pair[1];
-            return result;
+            var options = {};
+            var pair = parseBrightnessInput(
+                options, 
+                document.getElementById(key + '-brightness'));
+            return options;
         }
 
         var textarea = document.getElementById("result");
