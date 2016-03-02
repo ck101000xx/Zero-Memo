@@ -70,20 +70,22 @@
     (function() {
         function uploadImage(image) {
             return new Promise(function(resolve, reject) {
+                if (typeof image == 'string' && image.startsWith('data:')) {
+                    image = image.slice(image.indexOf(',') + 1);
+                }
                 var xhr = new XMLHttpRequest();
                 xhr.open('POST', 'https://api.imgur.com/3/image.json');
                 xhr.responseType = 'json';
                 xhr.setRequestHeader('Authorization', 'Client-ID f2c48785e9ed652');
                 xhr.onload = function() {
-                    if (!response.success) return reject(new Error(xhr.response.data.error));
+                    if (!xhr.response.success) return reject(new Error(xhr.response.data.error));
                     resolve(xhr.response.data.link);
                 };
                 xhr.onerror = reject;
                 
                 var data = new FormData();
                 data.append('image', image);
-
-                xhr.post(data);
+                xhr.send(data);
             });
         }
 
@@ -114,18 +116,19 @@
 
                     workers[key].running = true;
 
-                    workers[key].worker.onmessage = function(event) {
+                    var worker = workers[key].worker;
+
+                    worker.onmessage = function(event) {
                         workers[key].running = false;
                         resolve(event.data);
                     };
 
                     worker.onerror = reject;
 
-                    workers[key].worker.postMessage({
+                    worker.postMessage({
                         imageData: imageData,
                         options: options
                     });
-
                 });
             }
         }());
@@ -201,10 +204,8 @@
                 .then(function(imageData) {
                     var result = {};
                     return Promise.map(['dashboard', 'plurk'], function(key) {
-                        getImageOptions(key)
-                            .then(function(options) {
-                                return generateBackground(key, options, imageData);
-                            })
+                        var options = getImageOptions(key);
+                        generateBackground(key, options, imageData)
                             .then(toPng)
                             .then(uploadImage)
                             .then(function(value) { images[key] = value; });
